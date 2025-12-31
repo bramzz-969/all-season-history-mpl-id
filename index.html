@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPL ID History - Fix Layout</title>
+    <style>
+        :root {
+            --mpl-gold: #cfa348;
+            --mpl-blue: #00468c;
+            --bg-dark: #050505;
+        }
+
+        /* Reset Box Model agar kotak presisi & tidak terpotong */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            /* Corak garis-garis miring khas grafis Live MPL */
+            background-image: repeating-linear-gradient(45deg, #0a0a0a 0px, #0a0a0a 20px, #111 20px, #111 40px);
+            padding-bottom: 50px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(to bottom, var(--mpl-blue), transparent);
+            border-bottom: 2px solid var(--mpl-gold);
+            margin-bottom: 20px;
+        }
+
+        /* Container Season: DIPAKSA 1 KOLOM (Atas ke Bawah) */
+        .season-list {
+            display: flex;
+            flex-direction: column;
+            width: 90%;
+            max-width: 500px;
+            margin: 0 auto;
+            gap: 10px;
+        }
+
+        .season-btn {
+            width: 100%; /* Tombol penuh ke samping */
+            padding: 20px;
+            background: #1a1a1e;
+            border: 1px solid #333;
+            border-left: 6px solid var(--mpl-gold); /* Aksen emas kiri */
+            color: white;
+            font-weight: bold;
+            text-align: left;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        .season-btn:hover {
+            background: var(--mpl-gold);
+            color: black;
+            transform: scale(1.02);
+        }
+
+        /* Modal Detail */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: #111;
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 95%;
+            max-width: 700px;
+            margin: 20px auto;
+            border: 2px solid var(--mpl-gold);
+            padding: 20px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 15px; top: 10px;
+            font-size: 30px;
+            color: var(--mpl-gold);
+            cursor: pointer;
+        }
+
+        /* Kolom Champion & Runner Up */
+        .finalist-container {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .team-card {
+            flex: 1;
+            min-width: 250px;
+            background: #1a1a1e;
+            border: 1px solid #444;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .team-card img {
+            width: 200%;
+            max-width: 200px;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+            border: none !important #333;
+        }
+
+        .role-label {
+            font-size: 12px;
+            color: var(--mpl-gold);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .team-name-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+        }
+
+        /* Tabel Roster */
+        .roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .roster-table th {
+            background: var(--mpl-blue);
+            padding: 12px;
+            text-align: left;
+        }
+
+        .roster-table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img id="mplLogoHeader" src="https://i.imgur.com/IJdwZAd.png" alt="MPL ID Logo" style="width: 220px !important; height: auto; margin-bottom: 15pxm filter: drop-shadow(0 0 10px rgba(225,225,225,0.2));">
+    <h1>MPL ID CHAMPION HISTORY</h1>
+    <p>List Champion and Runner Up Season 1-16</p>
+</header>
+
+<div class="season-list" id="seasonList"></div>
+
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <img id="mplLogoModal" src="https://i.imgur.com/IJdwZAd.png" alt="MPL ID Logo" style="width: 100px; height: auto; display: block; margin: 0 auto 10px;">
+        <h2 id="modalTitle" style="color: var(--mpl-gold); margin-bottom: 10px;"></h2>
+        <img id="trophyImg"
+        style="width:120px;display:block; margin: 10px auto">
+        <p id="matchDesc" style="color: #ccc; font-size: 14px; line-height: 1.5;"></p>
+
+        <div class="finalist-container">
+            <div class="team-card">
+                <span class="role-label">Champion</span>
+                <img id="winnerImg" src="">
+                <div id="winnerNameText" class="team-name-display"></div>
+            </div>
+            <div class="team-card">
+                <span class="role-label">Runner-Up</span>
+                <img id="runnerImg" src="">
+                <div id="runnerNameText" class="team-name-display"></div>
+            </div>
+        </div>
+
+        <h3 style="border-left: 4px solid var(--mpl-gold); padding-left: 10px; margin: 20px 0 10px;">Winner Roster</h3>
+        <table class="roster-table">
+            <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>Nickname</th>
+                </tr>
+            </thead>
+            <tbody id="rosterList"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const mplData = {
+        1: {
+            winner: "TEAM NXL>",
+            runnerUp: "EVOS ESPORTS",
+            winnerImg: "nxl.png", // Contoh: Ganti dengan URL gambar logo TEAM nxl> (misalnya dari situs resmi atau Wikipedia)
+            runnerImg: "evos.png", // Contoh: Ganti dengan URL gambar logo EVOS Esports
+            mplLogo: "https://i.imgur.com/IJdwZAd.png", // Contoh: Ganti dengan URL logo MPL ID Season 1
+            desc: "MPL Indonesia Season 1 adalah musim pertama dari liga profesional Mobile Legends: Bang Bang di Indonesia yang diselenggarakan pada tahun 2018. Turnamen ini mempertemukan 10 tim dari berbagai organisasi esports besar di Indonesia. Final Season 1 berlangsung sangat ketat dan menjadi momen bersejarah karena underdog Team NXL> berhasil keluar sebagai juara mengalahkan EVOS Legends dalam pertandingan Best of 5 yang sengit dengan skor 3–2. Kemenangan ini mengejutkan banyak orang karena NXL dianggap bukan favorit juara pada awalnya.",
+            roster: [
+                {role: "Midlaner", nick: "G"},
+                {role: "Goldlaner", nick: "Watt"},
+                {role: "Explane", nick: "Rave"},
+                {role: "Jungler", nick: "Billy"},
+                {role: "Roamer", nick: "LJ"}
+            ]
+        },
+        2: {
+            winner: "RRQ.02",
+            runnerUp: "EVOS LEGENDS",
+            winnerImg: "rrq.png", 
+            runnerImg: "evos.png",
+            mplLogo: "mpl.png",
+            desc: "MPL Indonesia Season 2 adalah musim kedua liga profesional Mobile Legends terbesar di Indonesia. Di musim ini, persaingan makin ketat dengan berbagai tim kuat seperti RRQ.O2, EVOS Esports, Onic Esports, Aerowolf Roxy, Louvre, Bigetron, Saints Indo, dan lainnya ikut bersaing. 🏆 RRQ.O2 tampil dominan sepanjang turnamen dan berhasil menjadi juara MPL ID Season 2 setelah mengalahkan EVOS Legends dengan skor 3–0 di Grand Final yang digelar di Surabaya. Permainan mereka selama turnamen menunjukkan kerja sama tim yang solid, kontrol objektif yang rapi, dan eksekusi agresif terutama dari roster inti mereka. AyamJAGO bahkan terpilih sebagai Finals MVP di grand final ini. ",
+            roster: [
+                {role: "Midlaner", nick: "Lemon"},
+                {role: "Goldlaner", nick: "Tuturu"},
+                {role: "EXPlaner", nick: "Liam"},
+                {role: "Jungler", nick: "Ayam Jago"},
+                {role: "Roamer", nick: "Instinct"}
+            ]
+        },
+        3: {
+            winner: "ONIC ESPORTS",
+            runnerUp: "LOUVRE ESPORTS",
+            winnerImg: "onic.png", // Contoh: Ganti dengan URL gambar logo RRQ Hoshi sebagai champion
+            runnerImg: "louvre.png", // Contoh: Ganti dengan URL gambar logo ONIC Esports
+            mplLogo: "mpl.png", // Contoh: Ganti dengan URL logo MPL ID Season 3
+            desc: "MPL Indonesia Season 3 adalah musim ketiga liga profesional Mobile Legends: Bang Bang di Indonesia yang berlangsung dari Februari hingga Mei 2019. Musim ini ditandai dengan dominasi luar biasa dari ONIC Esports yang tampil konsisten sejak regular season hingga playoff. ONIC gak kebobolan sekalipun sepanjang turnamen dan berhasil menjadi juara Season 3 setelah mengalahkan Louvre Esports 3–0 di Grand Final — sebuah pencapaian besar yang juga mengamankan tempat mereka di Mobile Legends Southeast Asia Cup (MSC) sebagai wakil Indonesia.",
+            roster: [
+                {role: "Midlaner", nick: "Drian"},
+                {role: "Goldlaner", nick: "SaSa"},
+                {role: "Explaner", nick: "Antimage"},
+                {role: "Jungler", nick: "Udil"},
+                {role: "Roamer", nick: "Psychoo"}
+            ]
+        },
+        4: {
+            winner: "EVOS LEGENDS",
+            runnerUp: "RRQ HOSHI",
+            winnerImg: "evos.png", 
+            runnerImg: "rrq.png",
+            mplLogo: "mpl.png",
+            desc: "EVOS Legends bangkit setelah beberapa musim gagal di final dan akhirnya muncul sebagai tim terbaik di Season 4. Permainan mereka dikenal agresif dan solid di seluruh fase pertandingan — mulai dari kontrol objektif, rotasi map, hingga teamfight yang rapih — yang membawa mereka mengatasi pressure dan menang di partai puncak melawan RRQ Hoshi.",
+            roster: [
+                {role: "Midlaner", nick: "Wann"},
+                {role: "Goldlaner", nick: "Rekt"},
+                {role: "EXPlaner", nick: "Oura"},
+                {role: "Jungler", nick: "-"},
+                {role: "Roamer", nick: "Luminaire,Donkey"}
+            ]
+        },
+        5: {
+            winner: "RRQ HOSHI",
+            runnerUp: "EVOS LEGENDS",
+            winnerImg: "rrq.png", 
+            runnerImg: "evos.png",
+            mplLogo: "mpl.png",
+            desc: "RRQ Hoshi tampil dominan di MPL Indonesia Season 5 dan berhasil menjadi juara setelah mengalahkan EVOS Legends dengan skor 3–2 di Grand Final. Tim ini dikenal dengan strategi matang, koordinasi solid, kontrol objektif yang presisi, rotasi map yang efisien, serta teamfight yang rapih, dengan Lemon sebagai pengendali tempo di mid lane dan Vyn sebagai roamer utama yang membuka setiap pertarungan, menegaskan posisi RRQ Hoshi sebagai tim terkuat di musim ini.",
+            roster: [
+                {role: "Midlaner", nick: "Lemon"},
+                {role: "Goldlaner", nick: "Xinn"},
+                {role: "EXPlaner", nick: "R7"},
+                {role: "Jungler", nick: "-"},
+                {role: "Roamer", nick: "Vynn,Lj"}
+            ]
+        },
+        6: {
+                      winner: "RRQ HOSHI",
+            runnerUp: "ALTER EGO",
+            winnerImg: "rrq.png", 
+            runnerImg: "ae.png",
+            mplLogo: "mpl.png",
+            desc: "RRQ Hoshi kembali tampil sebagai tim terbaik di MPL Indonesia Season 6, berhasil mempertahankan gelar juara dan mencetak sejarah back to back champion setelah mengalahkan Alter Ego dengan skor 3–2 di Grand Final yang berjalan sengit; permainan mereka dipenuhi koordinasi tim yang rapih, kontrol objektif yang matang, serta eksekusi tepat di momen krusial, membawa RRQ unggul meskipun pertandingan sempat berlangsung imbang dan ketat sepanjang series final ini.",
+            roster: [
+                {role: "Midlaner", nick: "Lemon"},
+                {role: "Goldlaner", nick: "Xinn"},
+                {role: "EXPlaner", nick: "R7"},
+                {role: "Jungler", nick: "Albertt"},
+                {role: "Roamer", nick: "Vynn"}
+            ]
+        },
+        7: {
+            winner: "EVOS LEGENDS",
+            runnerUp: "BIGETRON ALPHA",
+            winnerImg: "evos.png", 
+            runnerImg: "btr.png",
+            mplLogo: "mpl.png",
+            desc: "EVOS Legends kembali menegaskan diri sebagai tim elite di MPL Indonesia Season 7 setelah tampil solid dan konsisten sepanjang turnamen, dan berhasil menjadi juara dengan mengalahkan Bigetron Alpha di Grand Final Best‑of‑7 dengan skor 4–2; permainan mereka dikenal dengan strategi matang serta teamfight dan kontrol objektif yang rapih, membuat EVOS mampu bangkit dari beberapa kekalahan awal di series dan menutup pertandingan dengan kemenangan yang menentukan serta gelar MPL ID kedua mereka.",
+            roster: [
+                {role: "Midlaner", nick: "Luminaire"},
+                {role: "Goldlaner", nick: "Clover"},
+                {role: "EXPlaner", nick: "Antimage"},
+                {role: "Jungler", nick: "Ferxiic"},
+                {role: "Roamer", nick: "Rekt"}
+            ]
+        },
+        8: {
+            winner: "ONIC ESPORTS",
+            runnerUp: "RRQ HOSHI",
+            winnerImg: "onic.png", 
+            runnerImg: "rrq.png",
+            mplLogo: "mpl.png",
+            desc: "ONIC Esports tampil sebagai tim terbaik dan berhasil menjadi juara MPL Indonesia Season 8 setelah mengalahkan RRQ Hoshi dengan skor 4–3 di Grand Final yang berlangsung sengit; pertandingan final penuh drama ini menunjukkan kontrol objektif yang matang, rotasi map yang efektif, dan teamfight yang solid dari ONIC, terutama di game penentuan, sehingga mereka mampu menutup series dengan kemenangan tipis dan meraih gelar juara.",
+            roster: [
+                {role: "Midlaner", nick: "Drian"},
+                {role: "Goldlaner", nick: "CW"},
+                {role: "EXPlaner", nick: "Butsss"},
+                {role: "Jungler", nick: "Sanz"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        },
+        9: {
+            winner: "RRQ HOSHI",
+            runnerUp: "ONIC ESPORTS",
+            winnerImg: "rrq.png", 
+            runnerImg: "onic.png",
+            mplLogo: "mpl.png",
+            desc: "RRQ Hoshi tampil sebagai tim terbaik di MPL Indonesia Season 9 dan berhasil menjadi juara setelah mengalahkan ONIC Esports dengan skor 4–1 di Grand Final Best‑of‑7, menunjukkan kontrol objektif yang matang, rotasi map yang efisien, serta eksekusi teamfight yang kuat sejak early hingga late game untuk menutup laga final dengan dominan dan mengamankan trofi juara MPL ID Season 9.",
+            roster: [
+                {role: "Midlaner", nick: "Clayyy"},
+                {role: "Goldlaner", nick: "Skylar"},
+                {role: "EXPlaner", nick: "R7"},
+                {role: "Jungler", nick: "Albertt"},
+                {role: "Roamer", nick: "VYN"}
+            ]
+        },
+        10: {
+            winner: "ONIC ESPORTS",
+            runnerUp: "RRQ HOSHI",
+            winnerImg: "onic.png", 
+            runnerImg: "rrq.png",
+            mplLogo: "mpl.png",
+            desc: "RRQ Hoshi kalah dari ONIC Esports di Grand Final MPL Indonesia Season 10 dengan skor 4–1, di mana ONIC menunjukkan permainan yang dominan, kontrol objektif kuat, dan eksekusi timfight rapih sejak awal hingga akhir seri, sehingga mereka berhasil menutup pertandingan dan merebut gelar juara MPL ID S10.",
+            roster: [
+                {role: "Midlaner", nick: "Sanz"},
+                {role: "Goldlaner", nick: "CW"},
+                {role: "EXPlaner", nick: "Butsss"},
+                {role: "Jungler", nick: "Kairi"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        },
+        11: {
+            winner: "ONIC ESPORTS",
+            runnerUp: "RRQ HOSHI",
+            winnerImg: "onic.png", 
+            runnerImg: "rrq.png",
+            mplLogo: "mpl.png",
+            desc: "RRQ Hoshi kalah, dan ONIC Esports tampil sebagai tim terbaik di MPL Indonesia Season 11 setelah mengalahkan EVOS Legends dengan skor 4–0 di Grand Final, menunjukkan dominasi mereka lewat kontrol objektif yang matang, rotasi map yang efisien, dan eksekusi teamfight yang superior sepanjang final sehingga mereka sukses mempertahankan gelar juara berturut‑turut di musim ini.",
+            roster: [
+                {role: "Midlaner", nick: "Sanz"},
+                {role: "Goldlaner", nick: "CW"},
+                {role: "EXPlaner", nick: "Butsss"},
+                {role: "Jungler", nick: "Kairi"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        },
+        12: {
+            winner: "ONIC HOSHI",
+            runnerUp: "GEEK FAM ID",
+            winnerImg: "onic.png", 
+            runnerImg: "geek.png",
+            mplLogo: "mpl.png",
+            desc: "ONIC Esports kembali tampil sebagai tim terbaik di MPL Indonesia Season 12 dan berhasil menjadi juara setelah mengalahkan Geek Fam ID dengan skor 4–2 di Grand Final Best‑of‑7, menunjukkan dominasi mereka lewat kontrol objektif yang matang, rotasi map yang efisien, dan eksekusi teamfight yang solid sepanjang series sehingga mereka mampu mengunci gelar juara MPL ID S12 untuk ketiga kalinya secara beruntun.",
+            roster: [
+                {role: "Midlaner", nick: "Sanz"},
+                {role: "Goldlaner", nick: "CW"},
+                {role: "EXPlaner", nick: "Butsss"},
+                {role: "Jungler", nick: "Kairi"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        },
+        13: {
+            winner: "FNATIC ONIC",
+            runnerUp: "EVOS GLORY",
+            winnerImg: "fonic.png", 
+            runnerImg: "evos.png",
+            mplLogo: "mpl.png",
+            desc: "Fnatic ONIC tampil sebagai tim terbaik di MPL Indonesia Season 13 dan berhasil menjadi juara setelah mengalahkan EVOS Glory dengan skor 4–2 di Grand Final Best‑of‑7, menunjukkan permainan yang stabil melalui kontrol objektif yang matang, rotasi map yang efisien, serta teamfight yang rapih di momen‑momen krusial sehingga mereka mampu mempertahankan gelar juara MPL ID untuk musim keempat berturut‑turut.",
+            roster: [
+                {role: "Midlaner", nick: "Sanz"},
+                {role: "Goldlaner", nick: "CW"},
+                {role: "EXPlaner", nick: "Lutpii"},
+                {role: "Jungler", nick: "Kairi"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        },
+        14: {
+            winner: "TEAM LIQUID ID",
+            runnerUp: "RRQ HOSHI",
+            winnerImg: "tlid.png", 
+            runnerImg: "rrq.png",
+            mplLogo: "mpl.png",
+            desc: "Team Liquid ID tampil sebagai tim terbaik di MPL Indonesia Season 14 dan berhasil menjadi juara setelah mengalahkan RRQ Hoshi dengan skor 4–3 di Grand Final yang berjalan sangat sengit, menunjukkan kontrol objektif dan teamfight yang rapih serta semangat juang tinggi dari kedua tim meskipun TLID sempat tertinggal di regular season, sehingga mereka sukses mengunci gelar juara MPL ID untuk pertama kali dalam sejarah organisasi ini.",
+            roster: [
+                {role: "Midlaner", nick: "Yehezkiel"},
+                {role: "Goldlaner", nick: "AeronShikii"},
+                {role: "EXPlaner", nick: "Aran"},
+                {role: "Jungler", nick: "Faviann"},
+                {role: "Roamer", nick: "Widy"}
+            ]
+        },
+        15: {
+            winner: "ONIC ESPORTS",
+            runnerUp: "RRQ HOSHI",
+            winnerImg: "onic.png", 
+            runnerImg: "rrq.png",
+            mplLogo: "mpl.png",
+            desc: "ONIC Esports tampil sebagai tim terbaik di MPL Indonesia Season 15 dan berhasil menjadi juara setelah mengalahkan RRQ Hoshi dengan skor 4–3 di Grand Final Best‑of‑7, dalam pertandingan yang sangat sengit di mana kedua tim saling kejar kemenangan sampai gim penentuan, menunjukkan kontrol objektif, rotasi map yang matang, dan teamfight rapih yang membawa ONIC merebut gelar juara dan mengukir sejarah gelar ke‑7 mereka di MPL ID.",
+            roster: [
+                {role: "Midlaner", nick: "Sanz"},
+                {role: "Goldlaner", nick: "Savero"},
+                {role: "EXPlaner", nick: "Lutpii"},
+                {role: "Jungler", nick: "Kairi"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        },
+        16: {
+            winner: "ONIC ESPORTS",
+            runnerUp: "ALTER EGO",
+            winnerImg: "onic.png", 
+            runnerImg: "ae.png",
+            mplLogo: "mpl.png",
+            desc: "ONIC Esports kembali menegaskan dominasinya di MPL Indonesia Season 16 dengan menjadi juara setelah mengalahkan Alter Ego di Grand Final Best‑of‑7 dengan skor 4–1, menunjukkan permainan yang solid lewat kontrol objektif yang matang, rotasi map yang efisien, dan eksekusi teamfight yang rapih sepanjang seri final sehingga mereka sukses mengunci gelar juara MPL ID S16.",
+            roster: [
+                {role: "Midlaner", nick: "Sanz"},
+                {role: "Goldlaner", nick: "Skylar"},
+                {role: "EXPlaner", nick: "Lutpii"},
+                {role: "Jungler", nick: "Kairi"},
+                {role: "Roamer", nick: "Kiboy"}
+            ]
+        }
+    };
+
+    // Set logo MPL ID di header (global, bisa diganti jika berbeda per season)
+    document.getElementById('mplLogoHeader').src = "mpl.png"; // Ganti dengan URL logo MPL ID utama
+
+    // Generate Tombol Season (1 per baris)
+    const list = document.getElementById('seasonList');
+    for (let i = 1; i <= 16; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'season-btn';
+        btn.innerHTML = `SEASON ${i}`;
+        btn.onclick = () => showDetail(i);
+        list.appendChild(btn);
+    }
+
+    function showDetail(s) {
+        const data = mplData[s] || { 
+            winner: "Belum Ada Data", 
+            runnerUp: "Belum Ada Data", 
+            winnerImg: `https://via.placeholder.com/300x180/00468c/ffffff?text=Belum+Ada+Gambar`,
+            runnerImg: `https://via.placeholder.com/300x180/222/ffffff?text=Belum+Ada+Gambar`,
+            mplLogo: `https://via.placeholder.com/100x50/00468c/ffffff?text=MPL+ID+S${s}`,
+            desc: "Detail pertandingan untuk season ini akan segera diperbarui.", 
+            roster: [] 
+        };
+        
+        document.getElementById('modalTitle').innerText = `MPL ID SEASON ${s}`;
+        document.getElementById('matchDesc').innerText = data.desc;
+        
+        // MENGISI NAMA TIM KE KOLOM
+        document.getElementById('winnerNameText').innerText = data.winner;
+        document.getElementById('runnerNameText').innerText = data.runnerUp;
+        
+        // Set gambar Champion dan Runner-Up
+        document.getElementById('winnerImg').src = data.winnerImg;
+        document.getElementById('runnerImg').src = data.runnerImg;
+        
+        // Set gambar logo MPL ID di modal
+        document.getElementById('mplLogoModal').src = data.mplLogo;
+        
+        const rosterTable = document.getElementById('rosterList');
+        rosterTable.innerHTML = data.roster.map(r => `
+            <tr>
+                <td style="color: var(--mpl-gold); font-weight:bold;">${r.role}</td>
+                <td>${r.nick}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="2" style="text-align:center">Data belum tersedia</td></tr>';
+
+        document.getElementById('detailModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').style.display = 'none';
+    }
+
+    window.onclick = function(e) {
+        if (e.target == document.getElementById('detailModal')) closeModal();
+    }
+</script>
+
+</body>
+</html>
